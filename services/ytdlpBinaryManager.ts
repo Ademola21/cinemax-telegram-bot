@@ -10,7 +10,7 @@ export class YtDlpBinaryManager {
   private static instance: YtDlpBinaryManager;
   private readonly binDir: string;
   private readonly ytdlpPath: string;
-  private readonly currentVersion: string = '2025.09.26';
+  private readonly currentVersion: string = '2025.09.23';
   private readonly ytdlpUrl: string;
 
   private constructor() {
