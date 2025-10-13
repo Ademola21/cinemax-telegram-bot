@@ -103,36 +103,33 @@ const YouTubeDownloaderPage: React.FC = () => {
       
       const data = await response.json();
       
-      if (data.status !== 'success' && data.status !== 'stream') {
-        throw new Error(data.text || 'Failed to process this video. It may be private, age-restricted, or a live stream.');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process this video. It may be private, age-restricted, or a live stream.');
       }
 
-      const allOptions: DownloadOption[] = (data.picker || [])
-        .map((item: any) => {
-            let type: DownloadOption['type'] = 'Video Only';
-            if (item.audio) {
-                type = 'Video + Audio';
-            } else if (item.type === 'audio') {
-                type = 'Audio Only';
-            }
-            
-            return {
-                url: item.url,
-                label: item.quality ? (item.type === 'audio' ? `${item.quality}` : `${item.quality}p`) : 'Audio',
-                format: item.format ? item.format.toUpperCase() : 'N/A',
-                type: type,
-            };
-        })
-        .filter((opt: DownloadOption) => opt.url);
+      // Process video formats
+      const videoOptions: DownloadOption[] = (data.videoFormats || []).map((format: any) => {
+        const type: DownloadOption['type'] = format.hasAudio ? 'Video + Audio' : 'Video Only';
+        
+        return {
+          url: `/api/download-file?url=${encodeURIComponent(videoUrl)}&formatId=${format.format_id}`,
+          label: format.resolution,  // Already formatted as "1080p", "720p", etc.
+          format: format.ext.toUpperCase(),
+          type: type,
+        };
+      });
 
-      if (data.status === 'success' && data.url && !allOptions.some(opt => opt.url === data.url)) {
-          allOptions.unshift({
-              url: data.url,
-              label: 'Best Quality',
-              format: 'MP4',
-              type: 'Video + Audio',
-          });
-      }
+      // Process audio formats
+      const audioOptions: DownloadOption[] = (data.audioFormats || []).map((format: any) => {
+        return {
+          url: `/api/download-file?url=${encodeURIComponent(videoUrl)}&formatId=${format.format_id}`,
+          label: format.abr ? `${Math.round(format.abr)}kbps` : 'Audio',
+          format: format.ext.toUpperCase(),
+          type: 'Audio Only' as const,
+        };
+      });
+
+      const allOptions = [...videoOptions, ...audioOptions];
 
       const qualityToNumber = (label: string) => parseInt(label.replace(/[a-zA-Z]/g, ''), 10) || 0;
 
@@ -150,9 +147,9 @@ const YouTubeDownloaderPage: React.FC = () => {
 
 
       setVideoDetails({
-        thumbnail: data.thumbnail,
-        title: data.title,
-        channel: data.author || 'YouTube',
+        thumbnail: data.info.thumbnail,
+        title: data.info.title,
+        channel: data.info.uploader || 'YouTube',
         completeOptions,
         videoOnlyOptions,
         audioOnlyOptions,
