@@ -28,7 +28,7 @@
     <!-- Security Header: Content Security Policy (CSP) to prevent XSS -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self'; 
-        script-src 'self' https://aistudiocdn.com https://cdn.jsdelivr.net; 
+        script-src 'self' https://aistudiocdn.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; 
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
         img-src 'self' data: https://picsum.photos; 
         font-src 'self' https://fonts.gstatic.com; 
@@ -38,6 +38,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yoruba Cinemax</title>
+    <!-- NOTE: Tailwind CDN is not recommended for production. It's used here for simplicity. A production build would use the Tailwind CLI. -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
