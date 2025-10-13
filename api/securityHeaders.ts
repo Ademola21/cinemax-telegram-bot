@@ -25,9 +25,9 @@ export function securityHeadersMiddleware(req: express.Request, res: express.Res
         'Content-Security-Policy',
         [
             "default-src 'self'",
-            "script-src 'self' https://cdn.jsdelivr.net",
-            "style-src 'self' https://fonts.googleapis.com",
-            "img-src 'self' data: https:",
+            "script-src 'self' https://cdn.jsdelivr.net https://cdn.tailwindcss.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "img-src 'self' data: https: https://i.ytimg.com https://yt3.ggpht.com",
             "font-src 'self' data: https://fonts.gstatic.com",
             "connect-src 'self' https:",
             "media-src 'self' blob: https:",
