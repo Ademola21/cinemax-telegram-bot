@@ -1,22 +1,26 @@
 import express from 'express';
 import { randomBytes, createHmac } from 'crypto';
 
-const getCsrfSecret = (): string | null => {
-    return process.env.CSRF_SECRET || null;
-};
+// SECURITY FIX: Make CSRF_SECRET mandatory to prevent token invalidation on restart
+if (!process.env.CSRF_SECRET) {
+    console.error('❌ CRITICAL: CSRF_SECRET environment variable is not set!');
+    console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))"');
+    console.error('Add it to your .env file: CSRF_SECRET=<generated-value>');
+    process.exit(1);
+}
+
+const CSRF_SECRET = process.env.CSRF_SECRET;
 
 export interface CsrfToken {
     token: string;
     createdAt: number;
 }
 
-export function generateCsrfToken(sessionToken: string): CsrfToken | null {
-    const secret = getCsrfSecret();
-    if (!secret) return null;
+export function generateCsrfToken(sessionToken: string): CsrfToken {
     const timestamp = Date.now().toString();
     const random = randomBytes(16).toString('base64url');
     
-    const hmac = createHmac('sha256', secret)
+    const hmac = createHmac('sha256', CSRF_SECRET)
         .update(`${sessionToken}:${timestamp}:${random}`)
         .digest('base64url');
     
@@ -27,8 +31,7 @@ export function generateCsrfToken(sessionToken: string): CsrfToken | null {
 }
 
 export function validateCsrfToken(csrfToken: string, sessionToken: string): boolean {
-    const secret = getCsrfSecret();
-    if (!secret || !csrfToken || !sessionToken) {
+    if (!csrfToken || !sessionToken) {
         return false;
     }
     
@@ -45,7 +48,7 @@ export function validateCsrfToken(csrfToken: string, sessionToken: string): bool
         return false;
     }
     
-    const expectedHmac = createHmac('sha256', secret)
+    const expectedHmac = createHmac('sha256', CSRF_SECRET)
         .update(`${sessionToken}:${timestamp}:${random}`)
         .digest('base64url');
     
@@ -71,13 +74,6 @@ const CSRF_EXEMPT_PATHS = [
 ];
 
 export function csrfProtection(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const secret = getCsrfSecret();
-    if (!secret) {
-        // If CSRF secret is not set, bypass protection but log a warning.
-        // This allows the app to function for viewing content without security features.
-        console.warn('⚠️ CSRF_SECRET is not set. CSRF protection is disabled.');
-        return next();
-    }
     if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
         return next();
     }

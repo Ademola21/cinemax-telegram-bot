@@ -14,12 +14,10 @@ async function testYouTubeDownloader() {
         
         const testUrl = 'https://www.youtube.com/watch?v=jNQXAC9IVRw';
         
-        const response = await fetch('http://localhost:5019/api/youtube-downloader', {
+        const response = await fetch('http://localhost:5000/api/youtube-downloader', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer test-token',
-                'X-CSRF-Token': 'test-csrf-token',
             },
             body: JSON.stringify({ 
                 url: testUrl,
@@ -51,7 +49,7 @@ async function testYtDlpEndpoint() {
     try {
         console.log('🔧 Testing yt-dlp test endpoint...');
         
-        const response = await fetch('http://localhost:5019/api/test-ytdlp');
+        const response = await fetch('http://localhost:5000/api/test-ytdlp');
         const result = await response.json();
         
         console.log('📊 Test endpoint response:', response.status);
