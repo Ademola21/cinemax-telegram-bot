@@ -10,7 +10,8 @@ import { tmpdir } from 'os';
 import { spawn } from 'child_process';
 import { createReadStream, unlinkSync, statSync, readdirSync, existsSync } from 'fs';
 import { runBot } from './bot/run';
-import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
+// Import Cinemax AI for our custom AI functionality
+import CinemaxAIService from './src/ai/services/CinemaxAIService';
 import usersRouter from './api/users';
 import commentsRouter from './api/comments';
 import { csrfProtection } from './api/csrf';
@@ -34,7 +35,7 @@ import { getSession, validateSessionBinding } from './api/sessionStore';
  *    - Verifies user still exists in database
  * 
  * Protected endpoints:
- * - POST /api/azure-ai (AI requests)
+ * - POST /api/cinemax-ai (AI requests)
  * - POST /api/youtube-downloader (YouTube downloads)
  * - POST /api/livetv/queue-youtube (Admin only - Live TV)
  * - POST /api/livetv/queue-hls (Admin only - Live TV)
@@ -163,44 +164,16 @@ setInterval(() => {
 
 // Removed local validateSession as it's now imported from ./api/auth
 
-// --- AZURE AI CLIENT SETUP ---
-let azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
-const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
-const azureDeploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-
-// Fix endpoint if it contains the full URL instead of base URL
-if (azureEndpoint && azureEndpoint.includes('/openai/deployments/')) {
-    const url = new URL(azureEndpoint);
-    azureEndpoint = `${url.protocol}//${url.host}/`;
-    console.log('🔧 Fixed endpoint format to:', azureEndpoint);
-}
-
-let azureClient: OpenAIClient | null = null;
-if (azureEndpoint && azureApiKey) {
-    try {
-        azureClient = new OpenAIClient(azureEndpoint, new AzureKeyCredential(azureApiKey));
-        console.log('✅ Azure OpenAI client initialized');
-        console.log('Endpoint:', azureEndpoint);
-        console.log('Deployment:', azureDeploymentName);
-    } catch (error) {
-        console.error('❌ Failed to initialize Azure OpenAI client:', error);
-    }
-} else {
-    console.log('❌ Missing Azure OpenAI configuration:');
-    console.log('Endpoint:', azureEndpoint ? '✓' : '✗');
-    console.log('API Key:', azureApiKey ? '✓' : '✗');
-    console.log('Deployment:', azureDeploymentName ? '✓' : '✗');
-}
+// --- CINEMAX AI SETUP ---
+const cinemaxAI = CinemaxAIService.getInstance();
+console.log('✅ Cinemax AI service initialized');
 
 
 // --- API ROUTES (MIGRATED FROM /api) ---
 
-// Azure OpenAI Proxy - SECURITY: Now uses proper server-side session validation
+// Cinemax AI Route - Universal AI for Yorubacinemax
 // @FIX: Use express.Request and express.Response for proper type inference.
-app.post('/api/azure-ai', async (req: express.Request, res: express.Response) => {
-    if (!azureClient || !azureDeploymentName) {
-        return res.status(500).json({ error: 'Azure AI service not configured on the server.' });
-    }
+app.post('/api/cinemax-ai', async (req: express.Request, res: express.Response) => {
     try {
         // SECURITY FIX: Validate session token against server-side session store
         const authResult = validateAuthToken(req.headers.authorization, req);
@@ -214,96 +187,105 @@ app.post('/api/azure-ai', async (req: express.Request, res: express.Response) =>
         }
         
         const { params } = req.body;
+        const userId = authResult.userId!;
 
-        // Extract data from the Gemini-style request format
+        console.log('🎬 Cinemax AI processing request for user:', userId);
+
+        // Extract request data
         const systemInstruction = params.config?.systemInstruction || '';
-        const userPrompt = params.contents || '';
-        const max_tokens = params.max_tokens || 2048;
-        const json_mode = params.json_mode || false;
+        const userPrompt = params.contents || params.userPrompt || '';
+        const requestType = params.type || 'chat';
+        const context = params.context || {};
 
-        const messages = [
-            { role: "system", content: systemInstruction },
-            { role: "user", content: userPrompt },
-        ];
+        // Build complete context for Cinemax AI
+        const completeContext = {
+            ...context,
+            systemInstruction,
+            userId,
+            requestType,
+            currentTime: new Date()
+        };
 
-        console.log('Azure config - Endpoint:', azureEndpoint);
-        console.log('Azure config - Deployment:', azureDeploymentName);
-        console.log('Calling getChatCompletions with messages:', messages.length);
+        // Route to appropriate Cinemax AI method based on request type
+        let response;
+        switch (requestType) {
+            case 'chat':
+                response = await cinemaxAI.runChat(userPrompt, context.movies || [], context.siteConfig || {}, context.isAdmin || false, userId);
+                break;
+            case 'recommendation':
+                response = await cinemaxAI.getAiRecommendations(context.currentMovie, context.movies || []);
+                break;
+            case 'personalized-recommendation':
+                response = await cinemaxAI.getAiPersonalizedRecommendations(context.viewingHistory || [], context.movies || [], userId);
+                break;
+            case 'movie-search':
+                response = await cinemaxAI.findMovieByDescription(userPrompt, context.movies || []);
+                break;
+            case 'analytics':
+                response = { text: await cinemaxAI.getAnalyticsInsights(context.analyticsData, userPrompt) };
+                break;
+            case 'support':
+                response = { text: await cinemaxAI.getSupport(userPrompt, userId) };
+                break;
+            case 'creative':
+                response = { text: await cinemaxAI.generateCreativeContent(userPrompt, context.contentType || 'content') };
+                break;
+            default:
+                response = await cinemaxAI.runChat(userPrompt, context.movies || [], context.siteConfig || {}, context.isAdmin || false, userId);
+        }
 
-        const result = await azureClient.getChatCompletions(
-            azureDeploymentName,
-            messages,
-            {
-                maxTokens: max_tokens || 2048,
-                ...(json_mode && { responseFormat: { type: "json_object" } })
-            }
-        );
-
-        console.log('Azure AI Response received, choices:', result.choices?.length || 0);
-
-        let responseContent = result.choices[0].message?.content || '{}';
+        console.log('✅ Cinemax AI response generated for user:', userId);
         
-        // Strip markdown code blocks if present (Azure sometimes wraps JSON in ```json...```)
-        responseContent = responseContent.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-        
-        const responseData = { text: responseContent };
-        
-        console.log('Azure AI Response data:', {
-            hasContent: !!responseContent,
-            contentLength: responseContent.length,
-            firstChars: responseContent.substring(0, 100),
-            isValidJSON: (() => {
-                try { JSON.parse(responseContent); return true; } catch { return false; }
-            })()
-        });
-        console.log('Azure AI Sending response:', responseData);
+        // Format response to match expected structure
+        const responseData = {
+            text: response.text || (typeof response === 'string' ? response : JSON.stringify(response)),
+            movie: response.movie,
+            personality: response.personality,
+            suggestions: response.suggestions,
+            actions: response.actions,
+            sources: response.sources
+        };
         
         res.status(200).json(responseData);
 
     } catch (error: any) {
-        console.error('Error in Azure AI proxy:', error);
+        console.error('❌ Error in Cinemax AI route:', error);
 
-        // Safely extract error details with fallbacks
-        const errorCode = error?.code || 'UNKNOWN';
         const errorMessage = error?.message || 'Unknown error occurred';
-
-        // Handle specific VPS network errors with robust field checking
-        if (errorCode === 'ENOTFOUND' || errorMessage.includes('ENOTFOUND')) {
-            res.status(500).json({
-                error: 'AI service temporarily unavailable. Check your network connection and Azure OpenAI configuration.',
-                details: `Network error: Cannot reach Azure OpenAI endpoint. ${errorMessage}`,
-                troubleshooting: {
-                    vps: 'Ensure your VPS can reach Azure endpoints and check DNS settings',
-                    config: 'Verify AZURE_OPENAI_ENDPOINT is correct in your .env file',
-                    network: 'Test connectivity: curl -I [your-azure-endpoint]'
-                }
-            });
-        } else if (errorMessage.includes('getaddrinfo') || errorCode === 'EAI_NODATA') {
-            res.status(500).json({
-                error: 'DNS resolution failed for AI service.',
-                details: errorMessage,
-                troubleshooting: {
-                    dns: 'Check your DNS configuration or contact your VPS provider',
-                    test: 'Try: nslookup [your-azure-endpoint-domain]'
-                }
-            });
-        } else if (errorCode === 'ECONNREFUSED') {
-            res.status(500).json({
-                error: 'Connection refused by AI service.',
-                details: errorMessage,
-                troubleshooting: {
-                    firewall: 'Check firewall settings allowing outbound HTTPS',
-                    endpoint: 'Verify your Azure OpenAI endpoint URL is correct'
-                }
-            });
-        } else {
-            res.status(500).json({
-                error: 'AI service error occurred',
-                details: errorMessage,
-                code: errorCode
-            });
-        }
+        
+        res.status(500).json({
+            error: 'Cinemax AI service temporarily unavailable.',
+            details: errorMessage,
+            troubleshooting: {
+                service: 'Cinemax AI is experiencing issues',
+                action: 'Please try again in a moment',
+                contact: 'If the problem persists, contact support'
+            }
+        });
     }
+});
+
+// Legacy Azure AI route - redirects to Cinemax AI for backward compatibility
+app.post('/api/azure-ai', async (req: express.Request, res: express.Response) => {
+    console.log('🔄 Redirecting Azure AI request to Cinemax AI...');
+    
+    // Transform the request to Cinemax AI format
+    const transformedBody = {
+        params: {
+            ...req.body.params,
+            type: 'chat',
+            context: {
+                movies: req.body.params.context?.movies || [],
+                siteConfig: req.body.params.context?.siteConfig || {},
+                isAdmin: req.body.params.context?.isAdmin || false
+            }
+        }
+    };
+    
+    req.body = transformedBody;
+    
+    // Forward to Cinemax AI route
+    return app._router.handle(req, res);
 });
 
 // YouTube Downloader using yt-dlp - SECURITY: Protected against external abuse

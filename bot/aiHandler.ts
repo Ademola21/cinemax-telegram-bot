@@ -2,27 +2,20 @@
 declare const __dirname: string;
 
 import TelegramBot from 'node-telegram-bot-api';
-import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 import { getAnalyticsSummary } from './analyticsService';
 import { setUserState, clearUserState } from './utils';
 import fs from 'fs';
 import path from 'path';
 import { Movie, Actor } from './types';
 import { atomicWrite } from './utils';
+import CinemaxAIService from '../src/ai/services/CinemaxAIService';
 
 const MOVIES_PATH = path.join(process.cwd(), 'data', 'movies.json');
 const ACTORS_PATH = path.join(process.cwd(), 'data', 'actors.json');
 
-// --- Azure OpenAI Client Setup ---
-const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
-const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
-const azureDeploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-
-if (!azureEndpoint || !azureApiKey || !azureDeploymentName) {
-    console.error("Azure OpenAI environment variables are not set. Bot AI features will be disabled.");
-}
-const client = azureEndpoint && azureApiKey ? new OpenAIClient(azureEndpoint, new AzureKeyCredential(azureApiKey)) : null;
-// ---
+// --- Cinemax AI Setup ---
+const cinemaxAI = CinemaxAIService.getInstance();
+console.log('🤖 Telegram Bot AI initialized with Cinemax AI');
 
 const readMovies = (): Movie[] => {
     try {
@@ -41,45 +34,25 @@ const readActors = (): Actor[] => {
 };
 const writeActors = (actors: Actor[]) => atomicWrite(ACTORS_PATH, JSON.stringify(actors, null, 2));
 
-const invokeAzureAI = async (systemInstruction: string, userPrompt: string): Promise<string> => {
-    if (!client) {
-        return "The AI service is not configured on the server.";
-    }
-    const messages = [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: userPrompt },
-    ];
-
-    try {
-        const result = await client.getChatCompletions(azureDeploymentName!, messages, { maxTokens: 2048 });
-        return result.choices[0].message?.content || "Sorry, I received an empty response.";
-    } catch (error: any) {
-        console.error("Azure OpenAI Error:", error);
-        return `Sorry, there was an error with the AI service: ${error.message}`;
-    }
-};
-
 const endChatKeyboard = {
     inline_keyboard: [[{ text: "🔚 End Chat", callback_data: "ai_end_chat" }]]
 };
 
-
 export const startAiChat = (bot: TelegramBot, chatId: number) => {
     setUserState(chatId, { command: 'ai_chat' });
-    bot.sendMessage(chatId, "🤖 You are now chatting with the Analytics AI. Ask me about site activity or the movie catalog. For example:\n- 'How is the site doing today?'\n- 'What movies are similar to Anikulapo?'", {
+    bot.sendMessage(chatId, "🤖 You are now chatting with Cinemax AI! I'm your intelligent assistant for Yorubacinemax. Ask me about:\n\n🎬 Site activity and analytics\n🎥 Movie recommendations and catalog\n📈 Performance insights\n🎭 Cultural context about Yoruba cinema\n\nFor example:\n- 'How is the site doing today?'\n- 'What movies are similar to Anikulapo?'\n- 'Give me some insights about our users'", {
         reply_markup: endChatKeyboard
     });
 };
 
 export const endAiChat = (bot: TelegramBot, chatId: number, messageId: number) => {
     clearUserState(chatId);
-    bot.editMessageText("🤖 AI chat session ended. You can now use other commands.", {
+    bot.editMessageText("🤖 Cinemax AI chat session ended. I've learned from our conversation and I'm ready to help again anytime!", {
         chat_id: chatId,
         message_id: messageId,
         reply_markup: { inline_keyboard: [] } // Remove the button
     });
 };
-
 
 export const handleAiQuery = async (bot: TelegramBot, msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
@@ -96,28 +69,29 @@ export const handleAiQuery = async (bot: TelegramBot, msg: TelegramBot.Message) 
 
         const analytics = getAnalyticsSummary(days);
         const movies = readMovies();
-        const movieContext = movies.map(m => `Title: ${m.title}, Genre: ${m.genre}, Category: ${m.category}`).join('\n');
+        
+        // Build context for Cinemax AI
+        const context = {
+            analyticsData: analytics,
+            movies: movies,
+            movieContext: movies.map(m => `Title: ${m.title}, Genre: ${m.genre}, Category: ${m.category}`).join('\n'),
+            timeFrame: days,
+            platform: 'telegram',
+            isAdmin: true
+        };
 
-        const systemInstruction = `You are a helpful AI assistant for the admin of Yoruba Cinemax. Provide concise, friendly, and natural language answers.
+        console.log(`🤖 Telegram Bot AI processing: "${query}"`);
 
-1.  **For analytics questions:** Use the provided data to summarize website performance.
-2.  **For movie catalog questions:** (e.g., "suggest a thriller", "what's like Jagun Jagun?"), use the provided movie list. Do not mention movies outside this list.
-
-**Analytics Data for the last ${days} day(s):**
-- Visitors: ${analytics.dailyVisitors}
-- New Sign-ups: ${analytics.todaysSignups}
-- Most Popular Movies (by clicks):
-  ${analytics.mostClicked.map((m, i) => `${i + 1}. ${m.title} (${m.clicks} clicks)`).join('\n') || 'No movie clicks recorded.'}
-
-**Available Movie Catalog:**
-${movieContext}
-`;
-
-        const responseText = await invokeAzureAI(systemInstruction, query);
+        // Use Cinemax AI for the response
+        const responseText = await cinemaxAI.handleTelegramQuery(query, {
+            ...context,
+            movies: movies as any // Cast to any to resolve type differences
+        });
+        
         bot.sendMessage(chatId, responseText, { reply_markup: endChatKeyboard });
 
     } catch (error) {
-        console.error("Azure AI Error:", error);
+        console.error("❌ Telegram Bot AI Error:", error);
         bot.sendMessage(chatId, "Sorry, I'm having trouble thinking right now. Please try again later.", { reply_markup: endChatKeyboard });
     }
 };
@@ -126,14 +100,12 @@ export const suggestNewMovies = async (bot: TelegramBot, chatId: number) => {
     await bot.sendChatAction(chatId, 'typing');
     try {
         const currentMovies = readMovies();
-        const existingTitles = currentMovies.map(m => m.title).join(', ');
+        
+        console.log('💡 Telegram Bot generating movie suggestions...');
 
-        const system = "You are a movie suggestion expert. Your task is to find 3 popular or trending Yoruba movies that are NOT in the provided list. Use your internal knowledge of world cinema.";
-        const prompt = `Find 3 movies that are not on this list: ${existingTitles}.`;
+        const responseText = await cinemaxAI.suggestNewMovies(currentMovies as any);
 
-        const responseText = await invokeAzureAI(system, prompt);
-
-        bot.sendMessage(chatId, `🧠 *AI Suggestions based on its knowledge:*\n\n${responseText}`, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, `🧠 *Cinemax AI Suggestions:*\n\n${responseText}`, { parse_mode: 'Markdown' });
 
     } catch(e) {
         bot.sendMessage(chatId, "Could not fetch suggestions at this time.");
@@ -148,50 +120,117 @@ export const getWeeklyDigest = async (bot: TelegramBot) => {
         return;
     }
 
-    console.log("Generating weekly digest...");
+    console.log("📊 Generating weekly digest with Cinemax AI...");
     await bot.sendChatAction(parseInt(adminId, 10), 'typing');
     try {
         const analytics = getAnalyticsSummary(7);
-        const systemInstruction = `You are an AI assistant generating a weekly performance report for the admin of a movie website. Provide a concise, friendly summary using Markdown formatting. Highlight key numbers and trends.`;
+        
+        const responseText = await cinemaxAI.generateWeeklyReport(analytics);
 
-        const prompt = `Here is the data for the last 7 days:
-- Total Visitors: ${analytics.dailyVisitors}
-- New Sign-ups: ${analytics.todaysSignups}
-- Top 3 Most Clicked Movies: ${analytics.mostClicked.slice(0, 3).map(m => `${m.title} (${m.clicks} clicks)`).join(', ') || 'None'}
-
-Please generate the weekly report.`;
-
-        const responseText = await invokeAzureAI(systemInstruction, prompt);
-
-        const reportHeader = "📊 *Your Weekly Performance Report* 📊\n\n";
+        const reportHeader = "📊 *Your Weekly Performance Report - Powered by Cinemax AI* 📊\n\n";
         bot.sendMessage(adminId, reportHeader + responseText, { parse_mode: 'Markdown' });
 
     } catch (e) {
-        console.error("Failed to generate weekly digest:", e);
+        console.error("❌ Failed to generate weekly digest:", e);
         bot.sendMessage(adminId, "Sorry, I couldn't generate the weekly report this time.");
     }
 };
 
 export const generateActorProfile = async (actorName: string): Promise<Partial<Actor> | null> => {
     try {
-        const systemInstruction = `You are an AI data specialist. Find a concise one-paragraph biography and a direct URL to a high-quality, public-domain portrait image for the specified Yoruba movie actor.
-Respond ONLY with a valid JSON object. If no good image URL is found, the imageUrl should be null.
-Example response: { "bio": "...", "imageUrl": "https://..." }`;
-        const userPrompt = `Find bio and image URL for actor: ${actorName}`;
+        console.log(`🎭 Generating actor profile for: ${actorName}`);
 
-        let responseText = await invokeAzureAI(systemInstruction, userPrompt);
-
-        // Remove markdown code blocks if present
-        if (responseText.startsWith('```json')) {
-            responseText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (responseText.startsWith('```')) {
-            responseText = responseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-        const profile = JSON.parse(responseText);
+        const profile = await cinemaxAI.generateActorProfile(actorName);
 
         return profile;
     } catch (error) {
-        console.error(`AI failed to generate profile for ${actorName}:`, error);
+        console.error(`❌ Cinemax AI failed to generate profile for ${actorName}:`, error);
         return null;
+    }
+};
+
+// Additional Cinemax AI enhanced features for Telegram bot
+
+export const getAiInsights = async (bot: TelegramBot, chatId: number, insightType: string) => {
+    await bot.sendChatAction(chatId, 'typing');
+    try {
+        const analytics = getAnalyticsSummary(7);
+        const movies = readMovies();
+        
+        let query = '';
+        switch (insightType) {
+            case 'users':
+                query = 'Give me insights about user behavior and engagement patterns';
+                break;
+            case 'movies':
+                query = 'Analyze movie popularity trends and viewing patterns';
+                break;
+            case 'performance':
+                query = 'Provide overall site performance analysis and recommendations';
+                break;
+            default:
+                query = 'Give me general insights about the platform';
+        }
+
+        const context = {
+            analyticsData: analytics,
+            movies: movies,
+            insightType: insightType,
+            platform: 'telegram',
+            isAdmin: true
+        };
+
+        const responseText = await cinemaxAI.handleTelegramQuery(query, context);
+        
+        bot.sendMessage(chatId, `🧠 *Cinemax AI Insights - ${insightType}:*\n\n${responseText}`, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+        console.error("❌ AI Insights Error:", error);
+        bot.sendMessage(chatId, "Sorry, I couldn't generate insights right now.");
+    }
+};
+
+export const getCreativeContent = async (bot: TelegramBot, chatId: number, contentType: string) => {
+    await bot.sendChatAction(chatId, 'typing');
+    try {
+        const movies = readMovies();
+        
+        const responseText = await cinemaxAI.generateCreativeContent(
+            `Yoruba cinema and ${contentType}`,
+            contentType
+        );
+        
+        bot.sendMessage(chatId, `🎨 *Cinemax AI Creative Content:*\n\n${responseText}`, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+        console.error("❌ Creative Content Error:", error);
+        bot.sendMessage(chatId, "Sorry, I couldn't create content right now.");
+    }
+};
+
+export const getMovieRecommendations = async (bot: TelegramBot, chatId: number, preference?: string) => {
+    await bot.sendChatAction(chatId, 'typing');
+    try {
+        const movies = readMovies();
+        
+        let query = 'Recommend some great Yoruba movies';
+        if (preference) {
+            query += ` that would appeal to someone who likes ${preference}`;
+        }
+
+        const context = {
+            movies: movies,
+            preference: preference,
+            platform: 'telegram',
+            isAdmin: true
+        };
+
+        const responseText = await cinemaxAI.handleTelegramQuery(query, context);
+        
+        bot.sendMessage(chatId, `🎬 *Cinemax AI Recommendations:*\n\n${responseText}`, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+        console.error("❌ Movie Recommendations Error:", error);
+        bot.sendMessage(chatId, "Sorry, I couldn't generate recommendations right now.");
     }
 };

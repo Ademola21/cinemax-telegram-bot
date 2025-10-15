@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { runChat } from '../services/aiService';
+import { runChat, endChatSession } from '../services/aiService';
 import { ChatMessage } from '../services/types';
 import { BotIcon, SendIcon, XIcon, ChevronDownIcon, GlobeIcon } from './icons/Icons';
 import LoadingSpinner from './LoadingSpinner';
@@ -105,9 +105,9 @@ const AiChatPopup: React.FC = () => {
   
   const getInitialMessage = () => {
       const welcomeText = currentUser ? `Hello ${currentUser.name}!` : "Hello!";
-      let assistanceText = "I'm your Yoruba Cinemax assistant. Ask me for movie recommendations or if you can't find a movie.";
+      let assistanceText = "🤖 I'm Cinemax AI, your intelligent assistant for Yorubacinemax! I can help you with:\n\n🎬 Movie recommendations\n🔍 Finding specific movies\n📚 Learning about Yoruba cinema\n🎭 Cultural context and insights\n💬 Creative conversations\n\nI have personality and memory - I'll remember our chat until you close it!";
       if (isAdmin) {
-          assistanceText += "\n\nAs an admin, you can also ask me for live site analytics (e.g., 'How many visits today?').";
+          assistanceText += "\n\n🔧 As an admin, you can also ask me for site analytics and performance insights.";
       }
       return { sender: 'ai' as const, text: `${welcomeText} ${assistanceText}` };
   };
@@ -141,16 +141,38 @@ const AiChatPopup: React.FC = () => {
       const aiResponse = await runChat(prompt, movies, siteConfig, isAdmin);
       let responseText = aiResponse.text;
       
+      // Add personality indicators if available
+      if (aiResponse.personality) {
+        const personality = aiResponse.personality;
+        if (personality.humor > 0.7) {
+          responseText = "😄 " + responseText;
+        } else if (personality.enthusiasm > 0.7) {
+          responseText = "🎉 " + responseText;
+        } else if (personality.empathy > 0.7) {
+          responseText = "💙 " + responseText;
+        }
+      }
+      
       if (responseText.includes('[SHOW_MOVIE_REQUEST_FORM]')) {
         responseText = responseText.replace('[SHOW_MOVIE_REQUEST_FORM]', '').trim();
         setShowRequestForm(true);
       }
 
-      const aiMessage: ChatMessage = { sender: 'ai', text: responseText, movie: aiResponse.movie, sources: aiResponse.sources };
+      const aiMessage: ChatMessage = { 
+        sender: 'ai', 
+        text: responseText, 
+        movie: aiResponse.movie, 
+        sources: aiResponse.sources,
+        suggestions: aiResponse.suggestions,
+        actions: aiResponse.actions
+      };
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error("AI API error:", error);
-      const errorMessage: ChatMessage = { sender: 'ai', text: "Sorry, I'm having trouble connecting right now. Please try again later." };
+      console.error("❌ Cinemax AI error:", error);
+      const errorMessage: ChatMessage = { 
+        sender: 'ai', 
+        text: "🤖 Sorry, I'm having trouble connecting right now. Please try again in a moment - I'm still learning!" 
+      };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -164,6 +186,22 @@ const AiChatPopup: React.FC = () => {
   };
 
 
+  const handleChatOpen = () => {
+    setIsOpen(true);
+    // Reset messages when opening chat for new session
+    setMessages([getInitialMessage()]);
+    setShowRequestForm(false);
+    setUserInput('');
+  };
+
+  const handleChatClose = () => {
+    setIsOpen(false);
+    // End the AI session when chat is closed
+    if (currentUser) {
+      endChatSession(currentUser.id);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSendMessage(userInput);
@@ -173,7 +211,7 @@ const AiChatPopup: React.FC = () => {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleChatOpen}
         className="fixed bottom-5 right-5 bg-gradient-to-r from-green-500 to-blue-600 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform duration-300 z-50 animate-pulse"
         aria-label="Open AI Chat"
       >
@@ -187,9 +225,9 @@ const AiChatPopup: React.FC = () => {
       <header className="flex items-center justify-between p-4 bg-gray-800 rounded-t-2xl border-b border-gray-700">
         <div className="flex items-center space-x-2">
             <BotIcon className="text-green-400" />
-            <h3 className="font-bold text-white">AI Assistant</h3>
+            <h3 className="font-bold text-white">Cinemax AI</h3>
         </div>
-        <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">
+        <button onClick={handleChatClose} className="text-gray-400 hover:text-white">
           <ChevronDownIcon />
         </button>
       </header>
@@ -249,7 +287,7 @@ const AiChatPopup: React.FC = () => {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask for a movie..."
+            placeholder="🤖 Ask me anything about Yoruba cinema..."
             className="w-full bg-gray-800 border border-gray-600 rounded-full py-2 pl-4 pr-12 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
             disabled={isLoading || showRequestForm}
           />

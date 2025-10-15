@@ -6,7 +6,6 @@ import fs from 'fs';
 import path from 'path';
 import { Movie } from './types';
 import { setUserState, getUserState, clearUserState, atomicWrite } from './utils';
-import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 import { Buffer } from 'buffer';
 import { URL } from 'url';
 import { BlobServiceClient } from '@azure/storage-blob';
@@ -35,16 +34,9 @@ if (AZURE_STORAGE_CONNECTION_STRING) {
     console.log('⚠️ Azure Storage connection string not found. Using local storage for posters.');
 }
 
-// --- Azure OpenAI Client Setup ---
-const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
-const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
-const azureDeploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-
-if (!azureEndpoint || !azureApiKey || !azureDeploymentName) {
-    console.error("Azure OpenAI environment variables are not set. Bot AI features will be disabled.");
-}
-const client = azureEndpoint && azureApiKey ? new OpenAIClient(azureEndpoint, new AzureKeyCredential(azureApiKey)) : null;
-// ---
+// --- AI Setup for Movie Management ---
+import CinemaxAIService from '../src/ai/services/CinemaxAIService';
+const cinemaxAI = CinemaxAIService.getInstance();
 
 // Helper to read movies from the JSON file
 const readMovies = (): Movie[] => {
@@ -69,30 +61,18 @@ const writeMovies = (movies: Movie[]) => atomicWrite(MOVIES_PATH, JSON.stringify
 
 // Progress file system removed - now checking against website movies directly like your Python script
 
-const invokeAzureAI = async (systemInstruction: string, userPrompt: string, max_tokens: number = 2048): Promise<any> => {
-    if (!client) {
-        throw new Error("Azure AI service is not configured.");
+const invokeCinemaxAI = async (systemInstruction: string, userPrompt: string, max_tokens: number = 2048): Promise<any> => {
+    try {
+        const response = await cinemaxAI.generateCreativeContent(userPrompt, 'movie-description');
+        
+        // Return in expected format
+        return {
+            description: response
+        };
+    } catch (error) {
+        console.error("Cinemax AI error:", error);
+        throw new Error("AI service is not available.");
     }
-
-    const messages = [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: userPrompt },
-    ];
-
-    // FIX: Corrected variable name from 'maxTokens' to 'max_tokens' to match function parameter.
-    const result = await client.getChatCompletions(azureDeploymentName!, messages, { maxTokens: max_tokens });
-
-    // Extract JSON from AI response, handling markdown code blocks
-    let content = result.choices[0].message?.content || '{}';
-
-    // Remove markdown code blocks if present
-    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-        content = jsonMatch[1].trim();
-    }
-
-    // Parse the JSON
-    return JSON.parse(content);
 };
 
 const sanitizeForFilename = (title: string): string => {
@@ -356,7 +336,7 @@ const handleManualMovieResponse = async (bot: TelegramBot, msg: TelegramBot.Mess
             try {
                 const system = "You are an expert movie summarizer. Based on the title, generate a compelling, single-paragraph movie description of 40-50 words. Respond ONLY with the description text, no extra conversational text.";
                 const prompt = `Yoruba movie title: "${state.movieData.title}"`;
-                const response = await invokeAzureAI(system, prompt);
+                const response = await invokeCinemaxAI(system, prompt);
                 const desc = response.description;
                 state.movieData.description = desc;
                 bot.sendMessage(userId, `🤖 AI Generated Description:\n\n_"${desc}"_`);
@@ -525,7 +505,7 @@ const handleYouTubeMovieResponse = async (bot: TelegramBot, msg: TelegramBot.Mes
         try {
             const userPrompt = `Enrich this movie data. YouTube Title: "${title}". YouTube Description: "${description}"`;
 
-            const details = await invokeAzureAI(aiEnrichmentSystemInstruction, userPrompt);
+            const details = await invokeCinemaxAI(aiEnrichmentSystemInstruction, userPrompt);
             
             // Extract video ID and check thumbnail with HEAD request (like Python)
             const { getBestThumbnailUrl } = require('./youtubeService');
@@ -711,7 +691,7 @@ export const createMovieFromYouTube = async (videoDetails: any): Promise<Movie |
 
         const userPrompt = `Enrich this movie data. YouTube Title: "${title}". YouTube Description: "${description}"`;
 
-        const details = await invokeAzureAI(aiEnrichmentSystemInstruction, userPrompt);
+        const details = await invokeCinemaxAI(aiEnrichmentSystemInstruction, userPrompt);
         
         // Extract video ID and check thumbnail with HEAD request (like Python)
         const { getBestThumbnailUrl } = require('./youtubeService');
@@ -935,7 +915,7 @@ export const processNextBatchForChannel = async (channelUrl: string, bot: Telegr
             try {
                 // Use AI to process the video info with safe thumbnail
                 const userPrompt = `Enrich this movie data. YouTube Title: "${title}". YouTube Description: "${fullVideoInfo.description || video.description || ''}"`;
-                const details = await invokeAzureAI(aiEnrichmentSystemInstruction, userPrompt);
+                const details = await invokeCinemaxAI(aiEnrichmentSystemInstruction, userPrompt);
                 
                 // Check against existing movies on website (like your Python script)
                 if (existingTitles.has(details.title.toLowerCase())) {
