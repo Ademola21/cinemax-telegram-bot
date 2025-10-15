@@ -310,6 +310,50 @@ class CinemaxAIService {
     }
   }
 
+  // Movie metadata extraction for YouTube processing (returns structured JSON)
+  async extractMovieMetadataFromYouTube(youTubeTitle: string, youTubeDescription: string): Promise<any> {
+    try {
+      console.log(`🎬 Extracting movie metadata from YouTube: "${youTubeTitle}"`);
+
+      const input: UniversalInput = {
+        type: 'analysis',
+        content: `Extract and clean movie metadata from YouTube data`,
+        context: {
+          youTubeTitle,
+          youTubeDescription,
+          extractionType: 'movie-metadata',
+          outputFormat: 'json'
+        }
+      };
+
+      const response: UniversalResponse = await this.cinemaxAI.processUniversal(input);
+
+      // Try to parse JSON response
+      try {
+        const metadata = JSON.parse(response.content);
+        console.log('✅ Movie metadata extracted and parsed as JSON');
+        return metadata;
+      } catch (parseError) {
+        console.warn('⚠️ AI response was not valid JSON, attempting to extract structured data');
+        // Fallback: try to extract structured data from natural language
+        return this.extractMovieMetadataFromText(response.content, youTubeTitle);
+      }
+
+    } catch (error) {
+      console.error('❌ Movie metadata extraction error:', error);
+      // Return basic fallback metadata
+      return {
+        title: youTubeTitle.replace(/\b(LATEST|YORUBA|MOVIE|2024|2023|NEW)\b/gi, '').trim(),
+        seriesTitle: youTubeTitle.replace(/\b(LATEST|YORUBA|MOVIE|2024|2023|NEW|PART\s*\d+)\b/gi, '').trim(),
+        partNumber: 1,
+        description: youTubeDescription ? youTubeDescription.substring(0, 150) + '...' : 'An exciting Yoruba movie.',
+        stars: ['Cast'],
+        genre: 'Drama',
+        category: 'Drama'
+      };
+    }
+  }
+
   // Session management
   async startChatSession(userId: string): Promise<string> {
     const sessionId = await this.cinemaxAI.startChatSession(userId);
@@ -462,6 +506,63 @@ class CinemaxAIService {
         imageUrl: null
       };
     }
+  }
+
+  private extractMovieMetadataFromText(text: string, originalTitle: string): any {
+    const metadata = {
+      title: originalTitle.replace(/\b(LATEST|YORUBA|MOVIE|2024|2023|NEW)\b/gi, '').trim(),
+      seriesTitle: originalTitle.replace(/\b(LATEST|YORUBA|MOVIE|2024|2023|NEW|PART\s*\d+)\b/gi, '').trim(),
+      partNumber: 1,
+      description: 'An exciting Yoruba movie.',
+      stars: ['Cast'],
+      genre: 'Drama',
+      category: 'Drama'
+    };
+
+    // Try to extract title from response
+    const titleMatch = text.match(/title["\s:]+([^,}\n]+)/i);
+    if (titleMatch) {
+      metadata.title = titleMatch[1].trim().replace(/["']/g, '');
+    }
+
+    // Try to extract series title
+    const seriesMatch = text.match(/seriesTitle["\s:]+([^,}\n]+)/i);
+    if (seriesMatch) {
+      metadata.seriesTitle = seriesMatch[1].trim().replace(/["']/g, '');
+    }
+
+    // Try to extract part number
+    const partMatch = text.match(/partNumber["\s:]+(\d+)/i);
+    if (partMatch) {
+      metadata.partNumber = parseInt(partMatch[1]);
+    }
+
+    // Try to extract description
+    const descMatch = text.match(/description["\s:]+([^,}\n]+)/i);
+    if (descMatch) {
+      metadata.description = descMatch[1].trim().replace(/["']/g, '');
+    }
+
+    // Try to extract stars
+    const starsMatch = text.match(/stars["\s:]+\[([^\]]+)\]/i);
+    if (starsMatch) {
+      const starsStr = starsMatch[1];
+      metadata.stars = starsStr.split(',').map((s: string) => s.trim().replace(/["']/g, '')).filter((s: string) => s);
+    }
+
+    // Try to extract genre
+    const genreMatch = text.match(/genre["\s:]+([^,}\n]+)/i);
+    if (genreMatch) {
+      metadata.genre = genreMatch[1].trim().replace(/["']/g, '');
+    }
+
+    // Try to extract category
+    const categoryMatch = text.match(/category["\s:]+([^,}\n]+)/i);
+    if (categoryMatch) {
+      metadata.category = categoryMatch[1].trim().replace(/["']/g, '');
+    }
+
+    return metadata;
   }
 
   // Utility methods

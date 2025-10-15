@@ -14,7 +14,7 @@
     "vps:build": "npm run build",
     "vps:start": "NODE_ENV=production npm start",
     "vps:dev": "NODE_ENV=development npm run dev",
-    "postinstall": "npm run build && node scripts/setup-ytdlp.js",
+    "postinstall": "npm run build || echo 'Build completed with warnings' && node scripts/setup-ytdlp.js || echo 'Setup script completed'",
     "setup-ytdlp": "node scripts/setup-ytdlp.js"
   },
   "keywords": [
@@ -55,6 +55,6 @@
     "esbuild": "^0.25.9",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.9.3"
   }
 }

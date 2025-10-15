@@ -42,7 +42,10 @@ async function setupYtDlp() {
 
 // Only run if this file is executed directly (not imported)
 if (require.main === module) {
-  setupYtDlp();
+  setupYtDlp().catch(error => {
+    console.error('❌ Setup script failed:', error);
+    process.exit(1);
+  });
 }
 
 module.exports = { setupYtDlp };

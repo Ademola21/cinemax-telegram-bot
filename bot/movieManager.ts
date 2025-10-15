@@ -63,6 +63,23 @@ const writeMovies = (movies: Movie[]) => atomicWrite(MOVIES_PATH, JSON.stringify
 
 const invokeCinemaxAI = async (systemInstruction: string, userPrompt: string, max_tokens: number = 2048): Promise<any> => {
     try {
+        // Check if this is a movie metadata extraction request
+        if (systemInstruction.includes('cataloging Yoruba movies from YouTube data')) {
+            // Extract YouTube title and description from the prompt
+            const titleMatch = userPrompt.match(/YouTube Title: "([^"]+)"/);
+            const descMatch = userPrompt.match(/YouTube Description: "([^"]+)"/);
+            
+            if (titleMatch) {
+                const youTubeTitle = titleMatch[1];
+                const youTubeDescription = descMatch ? descMatch[1] : '';
+                
+                console.log(`🎬 Using specialized movie metadata extraction for: "${youTubeTitle}"`);
+                const metadata = await cinemaxAI.extractMovieMetadataFromYouTube(youTubeTitle, youTubeDescription);
+                return metadata;
+            }
+        }
+        
+        // For other requests, use the general creative content generation
         const response = await cinemaxAI.generateCreativeContent(userPrompt, 'movie-description');
         
         // Return in expected format

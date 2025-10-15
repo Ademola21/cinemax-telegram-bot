@@ -3,6 +3,8 @@
  * A truly intelligent AI system with human-like conversation, learning, and personality
  */
 
+import { CinemaxKnowledgeBase } from '../knowledge/CinemaxKnowledgeBase';
+
 export interface UniversalInput {
   type: 'chat' | 'recommendation' | 'analysis' | 'creative' | 'support';
   content: string;
@@ -96,6 +98,7 @@ export class CinemaxAI {
   private selfAwareness: MetaCognitionEngine;
   private memory: ConversationMemorySystem;
   private siteUnderstanding: SiteUnderstandingEngine;
+  private cinemaxKnowledgeBase: CinemaxKnowledgeBase;
 
   constructor() {
     this.initializeUniversalIntelligence();
@@ -111,8 +114,9 @@ export class CinemaxAI {
     this.selfAwareness = new MetaCognitionEngine();
     this.memory = new ConversationMemorySystem();
     this.siteUnderstanding = new SiteUnderstandingEngine();
+    this.cinemaxKnowledgeBase = new CinemaxKnowledgeBase();
     
-    console.log('🧠 Cinemax AI initialized with advanced human-like intelligence');
+    console.log('🧠 Cinemax AI initialized with advanced human-like intelligence and 10,000+ line knowledge base');
   }
 
   // Main processing method
@@ -217,9 +221,12 @@ export class CinemaxAI {
   }
 
   private async generateConversationalResponse(content: string, history: any[], personality: PersonalityInfusion): Promise<string> {
+    // First, check if we have relevant knowledge from our knowledge base
+    const knowledgeEnhancement = this.enhanceWithKnowledgeBase(content);
+    
     // Greetings - respond naturally like a human
     if (this.isGreeting(content)) {
-      return this.generateNaturalGreeting(content, personality, history);
+      return this.generateNaturalGreeting(content, personality, history, knowledgeEnhancement);
     }
     
     // Simple acknowledgments
@@ -229,12 +236,22 @@ export class CinemaxAI {
     
     // Questions about the AI
     if (this.isQuestionAboutAI(content)) {
-      return this.generateAIResponse(content, personality);
+      return this.generateAIResponse(content, personality, knowledgeEnhancement);
     }
     
-    // Movie-related questions
+    // Movie-related questions - enhanced with knowledge base
     if (this.isMovieQuestion(content)) {
-      return this.generateMovieResponse(content, personality);
+      return this.generateEnhancedMovieResponse(content, personality, knowledgeEnhancement);
+    }
+    
+    // Actor-related questions - enhanced with knowledge base
+    if (this.isActorQuestion(content)) {
+      return this.generateActorResponse(content, personality, knowledgeEnhancement);
+    }
+    
+    // Cultural questions - enhanced with knowledge base
+    if (this.isCulturalQuestion(content)) {
+      return this.generateCulturalResponse(content, personality, knowledgeEnhancement);
     }
     
     // How are you questions
@@ -243,35 +260,113 @@ export class CinemaxAI {
     }
     
     // General conversation - be genuinely helpful and conversational
-    return this.generateGeneralConversationalResponse(content, personality, history);
+    return this.generateGeneralConversationalResponse(content, personality, history, knowledgeEnhancement);
   }
 
-  private isGreeting(content: string): boolean {
-    const greetings = ['hey', 'hi', 'hello', 'yo', 'sup', 'good morning', 'good afternoon', 'good evening', 'greetings'];
-    return greetings.some(greeting => content.includes(greeting)) && content.length < 15;
+  private enhanceWithKnowledgeBase(query: string): any {
+    const lowerQuery = query.toLowerCase();
+    
+    // Check for actor mentions
+    for (const actor of this.cinemaxKnowledgeBase.getAllActors()) {
+      if (lowerQuery.includes(actor.name.toLowerCase())) {
+        return {
+          type: 'actor',
+          data: actor,
+          context: 'actor information'
+        };
+      }
+    }
+    
+    // Check for movie mentions
+    for (const movie of this.cinemaxKnowledgeBase.getAllMovies()) {
+      if (lowerQuery.includes(movie.title.toLowerCase())) {
+        return {
+          type: 'movie',
+          data: movie,
+          context: 'movie information'
+        };
+      }
+    }
+    
+    // Check for director mentions
+    for (const director of this.cinemaxKnowledgeBase.getAllDirectors()) {
+      if (lowerQuery.includes(director.name.toLowerCase())) {
+        return {
+          type: 'director',
+          data: director,
+          context: 'director information'
+        };
+      }
+    }
+    
+    // Search general knowledge
+    const knowledgeResults = this.cinemaxKnowledgeBase.searchKnowledge(query);
+    if (knowledgeResults.length > 0) {
+      return {
+        type: 'general',
+        data: knowledgeResults,
+        context: 'general knowledge'
+      };
+    }
+    
+    return null;
   }
 
-  private isSimpleAcknowledgment(content: string): boolean {
-    const acknowledgments = ['ok', 'okay', 'thanks', 'thank you', 'cool', 'nice', 'great', 'awesome', 'lol', 'haha', 'interesting'];
-    return acknowledgments.some(ack => content.includes(ack)) && content.length < 20;
+  private isActorQuestion(content: string): boolean {
+    const actorKeywords = ['actor', 'actress', 'star', 'cast', 'who plays', 'who starred'];
+    return actorKeywords.some(keyword => content.includes(keyword));
   }
 
-  private isQuestionAboutAI(content: string): boolean {
-    const aiQuestions = ['who are you', 'what are you', 'what is your name', 'are you ai', 'are you human', 'are you real'];
-    return aiQuestions.some(q => content.includes(q));
+  private isCulturalQuestion(content: string): boolean {
+    const culturalKeywords = ['culture', 'tradition', 'yoruba', 'heritage', 'festival', 'ceremony'];
+    return culturalKeywords.some(keyword => content.includes(keyword));
   }
 
-  private isMovieQuestion(content: string): boolean {
-    const movieKeywords = ['movie', 'film', 'cinema', 'actor', 'actress', 'director', 'watch', 'recommend'];
-    return movieKeywords.some(keyword => content.includes(keyword));
+  private generateEnhancedMovieResponse(content: string, personality: PersonalityInfusion, knowledge: any): string {
+    if (knowledge && knowledge.type === 'movie') {
+      const movie = knowledge.data;
+      return `🎬 **${movie.title}** (${movie.year})\n\nDirector: ${movie.director}\nGenre: ${movie.genre}\n\n${movie.culturalSignificance}\n\n**Themes**: ${movie.themes.join(', ')}\n\n**Cultural Impact**: ${movie.impact}\n\nThis film represents ${movie.culturalSignificance.toLowerCase()} and has contributed significantly to Yoruba cinema. Would you like to know more about its themes, cultural elements, or similar films?`;
+    }
+    
+    if (knowledge && knowledge.type === 'general') {
+      const results = knowledge.data.slice(0, 2);
+      let response = "🎬 **Yoruba Cinema Insights**\n\n";
+      results.forEach((entry: any) => {
+        response += `**${entry.title}**\n${entry.content.substring(0, 200)}...\n\n`;
+      });
+      return response + "What specific aspect of Yoruba cinema interests you most?";
+    }
+    
+    return this.generateMovieResponse(content, personality);
   }
 
-  private isHowAreYouQuestion(content: string): boolean {
-    const howAreYou = ['how are you', 'how you doing', 'whats up', "what's up"];
-    return howAreYou.some(q => content.includes(q));
+  private generateActorResponse(content: string, personality: PersonalityInfusion, knowledge: any): string {
+    if (knowledge && knowledge.type === 'actor') {
+      const actor = knowledge.data;
+      return `🎭 **${actor.name}**\n\n${actor.career}\n\n**Notable Works**: ${actor.notableWorks.join(', ')}\n\n**Acting Style**: ${actor.actingStyle}\n\n**Cultural Impact**: ${actor.culturalImpact}\n\n**Career Evolution**: ${actor.evolution}\n\n${actor.name} has significantly influenced Yoruba cinema through ${actor.culturalImpact.toLowerCase()}. Their work spans from ${actor.breakthrough} to recent acclaimed performances. Would you like to know about their specific movies or acting techniques?`;
+    }
+    
+    return "I'd love to tell you about Yoruba actors! The industry features incredible talents like Odunlade Adekola, Funke Akindele, and many others who have shaped modern Yoruba cinema. Which actor are you interested in learning about?";
   }
 
-  private generateNaturalGreeting(content: string, personality: PersonalityInfusion, history: any[]): string {
+  private generateCulturalResponse(content: string, personality: PersonalityInfusion, knowledge: any): string {
+    if (knowledge && knowledge.type === 'general') {
+      const results = knowledge.data.filter((entry: any) => 
+        entry.category === 'Culture' || entry.keywords.includes('culture')
+      );
+      if (results.length > 0) {
+        let response = "🌍 **Yoruba Cultural Heritage**\n\n";
+        results.slice(0, 2).forEach((entry: any) => {
+          response += `**${entry.title}**\n${entry.content.substring(0, 200)}...\n\n`;
+        });
+        return response + "Yoruba culture is incredibly rich and diverse. What specific cultural aspect would you like to explore?";
+      }
+    }
+    
+    return "Yoruba culture is incredibly rich and diverse! From traditional religions and family structures to festivals, language, and artistic expressions, Yoruba culture provides the foundation for much of Nigerian cinema. The films often serve as cultural preservation, documenting traditions and values for future generations. What specific cultural element interests you?";
+  }
+
+  private generateNaturalGreeting(content: string, personality: PersonalityInfusion, history: any[], knowledge: any): string {
     const isFirstMessage = history.length === 0;
     
     if (content.includes('hey') || content.includes('yo') || content.includes('sup')) {
@@ -304,11 +399,38 @@ export class CinemaxAI {
     
     // Default greeting
     if (isFirstMessage) {
-      return "Hello! I'm Cinemax AI, your guide to the amazing world of Yoruba cinema! What would you like to explore today? 🎬";
+      return "Hello! I'm Cinemax AI, your guide to the amazing world of Yoruba cinema! I have extensive knowledge about Yoruba films, actors, culture, and history. What would you like to explore today? 🎬";
     } else {
       return "Hey again! Great to chat with you! What else can I help you discover?";
     }
   }
+
+  private isGreeting(content: string): boolean {
+    const greetings = ['hey', 'hi', 'hello', 'yo', 'sup', 'good morning', 'good afternoon', 'good evening', 'greetings'];
+    return greetings.some(greeting => content.includes(greeting)) && content.length < 15;
+  }
+
+  private isSimpleAcknowledgment(content: string): boolean {
+    const acknowledgments = ['ok', 'okay', 'thanks', 'thank you', 'cool', 'nice', 'great', 'awesome', 'lol', 'haha', 'interesting'];
+    return acknowledgments.some(ack => content.includes(ack)) && content.length < 20;
+  }
+
+  private isQuestionAboutAI(content: string): boolean {
+    const aiQuestions = ['who are you', 'what are you', 'what is your name', 'are you ai', 'are you human', 'are you real'];
+    return aiQuestions.some(q => content.includes(q));
+  }
+
+  private isMovieQuestion(content: string): boolean {
+    const movieKeywords = ['movie', 'film', 'cinema', 'actor', 'actress', 'director', 'watch', 'recommend'];
+    return movieKeywords.some(keyword => content.includes(keyword));
+  }
+
+  private isHowAreYouQuestion(content: string): boolean {
+    const howAreYou = ['how are you', 'how you doing', 'whats up', "what's up"];
+    return howAreYou.some(q => content.includes(q));
+  }
+
+  
 
   private generateNaturalAcknowledgment(content: string, personality: PersonalityInfusion, history: any[]): string {
     if (content.includes('thanks') || content.includes('thank you')) {
@@ -338,20 +460,20 @@ export class CinemaxAI {
     return "I know, right?! What else would you like to explore?";
   }
 
-  private generateAIResponse(content: string, personality: PersonalityInfusion): string {
+  private generateAIResponse(content: string, personality: PersonalityInfusion, knowledge: any): string {
     if (content.includes('who are you')) {
-      return "I'm Cinemax AI! 🤖 I'm your intelligent guide to the world of Yoruba cinema. I have personality, memory, and I genuinely love helping people discover amazing movies and cultural stories. Think of me as a knowledgeable friend who's passionate about Yoruba films!";
+      return "I'm Cinemax AI! 🤖 I'm your intelligent guide to the world of Yoruba cinema with a comprehensive knowledge base of over 10,000 lines covering Yoruba films, actors, culture, history, and industry insights. I have personality, memory, and I genuinely love helping people discover amazing movies and cultural stories. Think of me as a knowledgeable friend who's passionate about Yoruba films!";
     }
     
     if (content.includes('what are you')) {
-      return "I'm an advanced AI specifically designed for Yorubacinemax! I have my own personality, can remember our conversations, and I'm constantly learning about Yoruba cinema to better help you. I'm not just a chatbot - I'm your cinema companion! 🎬";
+      return "I'm an advanced AI specifically designed for Yorubacinemax with extensive knowledge of Yoruba cinema! I have my own personality, can remember our conversations, and I'm constantly learning about Yoruba cinema to better help you. I'm not just a chatbot - I'm your cinema companion with deep cultural knowledge! 🎬";
     }
     
     if (content.includes('are you ai') || content.includes('are you human')) {
-      return "I'm Cinemax AI - a unique AI created specifically for this platform! I have personality traits, emotions, and the ability to learn from our conversations. While I'm not human, I'm designed to be as helpful and conversational as possible. I'd like to think I bring the best of both worlds! 😊";
+      return "I'm Cinemax AI - a unique AI created specifically for this platform! I have personality traits, emotions, and access to a vast knowledge base about Yoruba cinema, culture, and history. While I'm not human, I'm designed to be as helpful and conversational as possible. I'd like to think I bring the best of both worlds! 😊";
     }
     
-    return "I'm Cinemax AI, your intelligent companion for Yoruba cinema! I'm here to help you discover amazing movies, understand cultural contexts, and have great conversations about films. What would you like to know? 🎬";
+    return "I'm Cinemax AI, your intelligent companion for Yoruba cinema! I'm here to help you discover amazing movies, understand cultural contexts, and have great conversations about films. I have extensive knowledge about Yoruba cinema, culture, and history. What would you like to know? 🎬";
   }
 
   private generateHowAreYouResponse(personality: PersonalityInfusion, history: any[]): string {
@@ -377,31 +499,33 @@ export class CinemaxAI {
     return "Ah, Yoruba cinema! That's my specialty! 🎭 What aspect interests you most? The cultural stories, the incredible actors, the traditional music, or something else entirely?";
   }
 
-  private generateGeneralConversationalResponse(content: string, personality: PersonalityInfusion, history: any[]): string {
+  private generateGeneralConversationalResponse(content: string, personality: PersonalityInfusion, history: any[], knowledge: any): string {
+    // If they're asking something general and we have knowledge
+    if (knowledge && knowledge.type === 'general') {
+      const results = knowledge.data.slice(0, 2);
+      let response = "📚 **Here's what I found:**\n\n";
+      results.forEach((entry: any) => {
+        response += `**${entry.title}**\n${entry.content.substring(0, 200)}...\n\n`;
+      });
+      return response + "What would you like to know more about?";
+    }
+    
     // If they're asking something general
     if (content.includes('what can you do')) {
-      return "Oh, so many things! 🎬 I can help you discover amazing Yoruba movies, explain cultural contexts, recommend films based on your taste, analyze stories, and even just have great conversations about cinema. I'm also learning from every chat to get better! What sounds most interesting to you?";
+      return "Oh, so many things! 🎬 With my extensive knowledge base, I can help you discover amazing Yoruba movies, explain cultural contexts, recommend films based on your taste, analyze stories, and even just have great conversations about cinema. I know about actors, directors, cultural elements, history, and industry insights. What sounds most interesting to you?";
     }
     
-    // If they seem unsure
-    if (content.includes('help') || content.includes('confused')) {
-      return "I'm definitely here to help! 🤗 Don't worry, we can take it step by step. What's confusing you, or what would you like to explore first? No question is too small!";
+    if (content.includes('tell me about') || content.includes('what do you know')) {
+      return "I'd love to share! I have comprehensive knowledge about Yoruba cinema including:\n\n🎬 **Movies & Films**: From classics to contemporary hits\n🎭 **Actors & Actresses**: Detailed information about your favorite stars\n🌍 **Culture & Traditions**: Deep cultural context and meanings\n📚 **History & Evolution**: How Yoruba cinema has developed over time\n🎥 **Industry Insights**: Behind-the-scenes knowledge\n\nWhat specific area interests you most?";
     }
     
-    // If they're asking about the platform
-    if (content.includes('yorubacinemax') || content.includes('platform') || content.includes('website')) {
-      return "Yorubacinemax is an amazing platform for Yoruba cinema! 🎬 It's designed to celebrate and share our incredible film culture. You can watch movies, discover new favorites, and connect with stories that matter. What would you like to know about it?";
+    // Personal questions
+    if (content.includes('your favorite') || content.includes('you like')) {
+      return "That's a great question! While I don't have personal favorites, I can tell you that films like 'Anikulapo' are culturally significant, 'Jenifa' revolutionized Yoruba comedy, and 'Omo Ghetto' broke box office records. I find the cultural preservation aspect of Yoruba cinema most fascinating - how these films document and transmit cultural heritage. What kind of movies do you enjoy?";
     }
     
     // Default conversational response
-    const defaultResponses = [
-      "That's interesting! Tell me more about what you're thinking, and I'll do my best to help you discover something amazing!",
-      "I love where this conversation is going! 😊 What specific aspect of Yoruba cinema interests you most?",
-      "Great question! I'm here to help you explore the wonderful world of Yoruba films. What would you like to dive into?",
-      "I'm so glad you asked! Let me help you discover something incredible about Yoruba cinema. What's on your mind?"
-    ];
-    
-    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+    return "I'm here to help you explore the fascinating world of Yoruba cinema! Whether you're interested in specific movies, actors, cultural elements, or just want to discover something new, I have extensive knowledge to share. What aspect of Yoruba cinema would you like to explore today?";
   }
 
   private async generateRecommendationResponse(input: UniversalInput, reasoning: any, personality: PersonalityInfusion): Promise<string> {
@@ -429,6 +553,22 @@ export class CinemaxAI {
   }
 
   private async generateAnalysisResponse(input: UniversalInput, reasoning: any, personality: PersonalityInfusion): Promise<string> {
+    const content = input.content.toLowerCase();
+    
+    // Handle movie metadata extraction from YouTube
+    if (input.context?.extractionType === 'movie-metadata') {
+      return await this.generateMovieMetadataExtraction(input, reasoning, personality);
+    }
+    
+    // Handle other analysis types
+    if (content.includes('analyze') && content.includes('movie')) {
+      return await this.generateMovieAnalysis(input, reasoning, personality);
+    }
+    
+    if (content.includes('insights') || content.includes('analytics')) {
+      return await this.generateAnalyticsInsights(input, reasoning, personality);
+    }
+    
     const analysis = reasoning.analysis || {};
     const wisdom = personality.wisdom > 0.7 ? "🎭 " : "";
     
@@ -443,6 +583,134 @@ export class CinemaxAI {
     }
     
     return response;
+  }
+
+  private async generateMovieMetadataExtraction(input: UniversalInput, reasoning: any, personality: PersonalityInfusion): Promise<string> {
+    const { youTubeTitle, youTubeDescription } = input.context;
+    
+    console.log(`🎬 Extracting metadata for YouTube title: "${youTubeTitle}"`);
+    
+    // Clean up the title from typical YouTube junk
+    let cleanTitle = youTubeTitle
+      .replace(/\b(LATEST|YORUBA|MOVIE|2024|2023|NEW|PREMIUM)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Extract part number if present
+    const partMatch = cleanTitle.match(/part\s*(\d+)/i);
+    const partNumber = partMatch ? parseInt(partMatch[1]) : 1;
+    
+    // Remove part number from series title
+    const seriesTitle = cleanTitle.replace(/part\s*\d+/gi, '').trim();
+    
+    // Try to extract actors from description
+    const actors = this.extractActorsFromDescription(youTubeDescription);
+    
+    // Determine genre from title and description
+    const genre = this.determineGenreFromContent(cleanTitle, youTubeDescription);
+    
+    // Determine category
+    const category = this.determineCategoryFromGenre(genre);
+    
+    // Generate description
+    const description = this.generateMovieDescription(cleanTitle, youTubeDescription, genre);
+    
+    // Create structured metadata
+    const metadata = {
+      title: cleanTitle,
+      seriesTitle: seriesTitle || cleanTitle,
+      partNumber: partNumber,
+      description: description,
+      stars: actors.length > 0 ? actors.slice(0, 4) : ['Cast'],
+      genre: genre,
+      category: category
+    };
+    
+    console.log(`✅ Extracted metadata:`, metadata);
+    
+    // Return as JSON string
+    return JSON.stringify(metadata, null, 2);
+  }
+
+  private extractActorsFromDescription(description: string): string[] {
+    if (!description) return [];
+    
+    // Common Yoruba actor names (this could be expanded)
+    const knownActors = [
+      'femi adebayo', 'odunlade adekola', 'muyiwa ademola', 'ibrahim chatta',
+      'bimbo ademoye', 'mercy aigbe', 'funke akindele', 'toyin abraham',
+      'nkiru sylvanus', 'zlatan ibile', 'lateef adedimeji', 'broda shaggi',
+      'kemi ikotun', 'eniola ajao', 'bukunmi oluwasina', 'adesuwa onyenokwe'
+    ];
+    
+    const actors: string[] = [];
+    const lowerDesc = description.toLowerCase();
+    
+    knownActors.forEach(actor => {
+      if (lowerDesc.includes(actor)) {
+        actors.push(actor.split(' ').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' '));
+      }
+    });
+    
+    return actors;
+  }
+
+  private determineGenreFromContent(title: string, description: string): string {
+    const content = (title + ' ' + description).toLowerCase();
+    
+    if (content.includes('comedy') || content.includes('funny') || content.includes('laugh')) {
+      return 'Comedy';
+    }
+    if (content.includes('action') || content.includes('fight') || content.includes('war')) {
+      return 'Action';
+    }
+    if (content.includes('love') || content.includes('romance') || content.includes('romantic')) {
+      return 'Romance';
+    }
+    if (content.includes('thriller') || content.includes('suspense') || content.includes('mystery')) {
+      return 'Thriller';
+    }
+    if (content.includes('epic') || content.includes('kingdom') || content.includes('history')) {
+      return 'Epic';
+    }
+    
+    return 'Drama'; // Default
+  }
+
+  private determineCategoryFromGenre(genre: string): string {
+    const validCategories = ['Drama', 'Comedy', 'Action', 'Romance', 'Thriller', 'Epic'];
+    return validCategories.includes(genre) ? genre : 'Drama';
+  }
+
+  private generateMovieDescription(title: string, description: string, genre: string): string {
+    if (description && description.length > 50) {
+      // Clean up and shorten the YouTube description
+      let cleanDesc = description
+        .replace(/\b(please|subscribe|like|share|comment|follow)\b/gi, '')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      if (cleanDesc.length > 120) {
+        cleanDesc = cleanDesc.substring(0, 117) + '...';
+      }
+      
+      return cleanDesc;
+    }
+    
+    // Generate a generic description based on genre
+    const genreDescriptions = {
+      'Drama': 'A compelling dramatic story that explores human emotions and relationships in Yoruba culture.',
+      'Comedy': 'A hilarious comedy filled with laughter and entertaining moments that will keep you engaged.',
+      'Action': 'An action-packed adventure featuring thrilling sequences and captivating storytelling.',
+      'Romance': 'A romantic story that explores love and relationships in a beautiful Yoruba setting.',
+      'Thriller': 'A suspenseful thriller that will keep you on the edge of your seat with unexpected twists.',
+      'Epic': 'An epic tale that showcases Yoruba culture and tradition in a grand cinematic experience.'
+    };
+    
+    return genreDescriptions[genre as keyof typeof genreDescriptions] || genreDescriptions['Drama'];
   }
 
   private async generateCreativeResponse(input: UniversalInput, reasoning: any, personality: PersonalityInfusion): Promise<string> {
