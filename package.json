@@ -14,7 +14,11 @@
     "vps:build": "npm run build",
     "vps:start": "NODE_ENV=production npm start",
     "vps:dev": "NODE_ENV=development npm run dev",
+<<<<<<< HEAD
     "postinstall": "npm run build || echo 'Build completed with warnings' && node scripts/setup-ytdlp.js || echo 'Setup script completed'",
+=======
+    "postinstall": "npm run build && node scripts/setup-ytdlp.js",
+>>>>>>> 95560cae97b815c150f233da4061cb001a7a6547
     "setup-ytdlp": "node scripts/setup-ytdlp.js"
   },
   "keywords": [

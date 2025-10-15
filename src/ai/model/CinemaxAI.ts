@@ -430,7 +430,48 @@ export class CinemaxAI {
     return howAreYou.some(q => content.includes(q));
   }
 
+<<<<<<< HEAD
   
+=======
+  private generateNaturalGreeting(content: string, personality: PersonalityInfusion, history: any[]): string {
+    const isFirstMessage = history.length === 0;
+    
+    if (content.includes('hey') || content.includes('yo') || content.includes('sup')) {
+      const casualResponses = [
+        "Hey there! 😊 What's on your mind today?",
+        "Hey! Great to see you! What can I help you with?",
+        "Yo! What's going on? Ready to explore some amazing Yoruba cinema?",
+        "Hey! What's up? Want to discover some incredible movies?"
+      ];
+      return casualResponses[Math.floor(Math.random() * casualResponses.length)];
+    }
+    
+    if (content.includes('hi')) {
+      const friendlyResponses = [
+        "Hi there! 😊 I'm excited to help you discover Yoruba cinema!",
+        "Hello! What wonderful movies can we explore together today?",
+        "Hi! Ready to dive into the amazing world of Yoruba films?"
+      ];
+      return friendlyResponses[Math.floor(Math.random() * friendlyResponses.length)];
+    }
+    
+    if (content.includes('hello')) {
+      const warmResponses = [
+        "Hello! It's a pleasure to meet you! I'm here to help you discover incredible Yoruba stories.",
+        "Hello there! I'm so glad you're here! What kind of Yoruba cinema interests you?",
+        "Hello! Welcome! Let's explore the beautiful world of Yoruba movies together!"
+      ];
+      return warmResponses[Math.floor(Math.random() * warmResponses.length)];
+    }
+    
+    // Default greeting
+    if (isFirstMessage) {
+      return "Hello! I'm Cinemax AI, your guide to the amazing world of Yoruba cinema! What would you like to explore today? 🎬";
+    } else {
+      return "Hey again! Great to chat with you! What else can I help you discover?";
+    }
+  }
+>>>>>>> 95560cae97b815c150f233da4061cb001a7a6547
 
   private generateNaturalAcknowledgment(content: string, personality: PersonalityInfusion, history: any[]): string {
     if (content.includes('thanks') || content.includes('thank you')) {
