@@ -1,11 +1,11 @@
 # VPS Deployment Guide
 
-This guide will help you deploy the Yoruba Cinemax application to your VPS (Virtual Private Server).
+This guide will help you deploy the Cinemax AI Platform to your VPS (Virtual Private Server).
 
 ## Prerequisites
 
 Your VPS should have:
-- **Node.js 20+** (required for Azure OpenAI dependencies and yt-dlp-exec)
+- **Node.js 18+** (required for yt-dlp-exec and modern JavaScript features)
 - **Git** (to clone the repository)
 - **PM2** (optional, for process management)
 - **FFmpeg** (for video/audio processing)
@@ -16,15 +16,15 @@ Your VPS should have:
 # Update your system
 sudo apt update && sudo apt upgrade -y
 
-# Install Node.js 20 (using NodeSource repository)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# Install Node.js 18 (using NodeSource repository)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # Install FFmpeg for video/audio processing
 sudo apt install ffmpeg -y
 
 # Verify installations
-node --version  # Should be v20.x.x
+node --version  # Should be v18.x.x
 ffmpeg -version  # Should show FFmpeg version
 
 # Note: yt-dlp-exec (Node.js package) will be installed automatically via npm install
@@ -38,7 +38,7 @@ sudo npm install -g pm2
 ```bash
 # Clone your repository (replace with your repo URL)
 git clone <your-repo-url>
-cd yoruba-cinemax
+cd cinemax-ai-platform
 
 # Install dependencies
 npm install
@@ -63,11 +63,6 @@ PORT=5019
 SESSION_ENCRYPTION_KEY=your-32-byte-base64-encoded-key
 CSRF_SECRET=your-32-byte-base64-encoded-secret
 
-# Azure OpenAI Configuration (required for AI features)
-AZURE_OPENAI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key-here
-AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
-
 # Telegram Bot Configuration (optional)
 TELEGRAM_BOT_TOKEN=your-bot-token
 ADMIN_TELEGRAM_USER_ID=your-user-id
@@ -80,6 +75,8 @@ CDN_BASE_URL=your-cdn-url
 # YouTube API (optional - for enhanced video info)
 YOUTUBE_API_KEY=your-youtube-api-key
 ```
+
+**Note**: Cinemax AI works completely offline without external AI services. No AI API keys required!
 
 **Generate Security Keys:**
 ```bash
@@ -103,7 +100,7 @@ npm start
 ### Option B: Using PM2 (Recommended)
 ```bash
 # Start with PM2
-pm2 start npm --name "yoruba-cinemax" -- start
+pm2 start npm --name "cinemax-ai" -- start
 
 # Save PM2 configuration
 pm2 save
@@ -133,26 +130,27 @@ Your application will be available at:
 
 ## Troubleshooting
 
-### AI Features Not Working
+### Cinemax AI Features Not Working
 If you see "AI service temporarily unavailable" errors:
 
-1. **Check Azure OpenAI Configuration:**
+1. **Check Cinemax AI Service:**
    ```bash
-   # Test endpoint connectivity
-   curl -I https://your-resource.cognitiveservices.azure.com/
+   # Test AI endpoint
+   curl http://localhost:5019/api/cinemax-ai
    ```
 
-2. **Verify Environment Variables:**
+2. **Verify Application Logs:**
    ```bash
-   # Check if variables are set
-   echo $AZURE_OPENAI_ENDPOINT
-   echo $AZURE_OPENAI_API_KEY
+   # Check if AI is initializing properly
+   pm2 logs cinemax-ai
    ```
 
-3. **Network Issues:**
-   - Ensure your VPS can reach Azure endpoints
-   - Check DNS resolution: `nslookup your-resource.cognitiveservices.azure.com`
-   - Contact your VPS provider if network issues persist
+3. **Restart Service:**
+   ```bash
+   pm2 restart cinemax-ai
+   ```
+
+**Note**: Cinemax AI runs locally and doesn't require external API connections.
 
 ### YouTube Downloader Not Working
 If you see YouTube downloader errors:
@@ -185,7 +183,7 @@ If you see YouTube downloader errors:
 1. **Check Application Logs:**
    ```bash
    # If using PM2
-   pm2 logs yoruba-cinemax
+   pm2 logs cinemax-ai
    
    # If running directly
    npm start  # Check console output
@@ -249,7 +247,7 @@ This will eliminate the need for `'unsafe-inline'` and `'unsafe-eval'` in the Co
 git pull
 npm install
 npm run build
-pm2 restart yoruba-cinemax
+pm2 restart cinemax-ai
 
 # Monitor logs
 pm2 monit

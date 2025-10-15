@@ -1,90 +1,49 @@
-# Yoruba Cinemax - Movie Streaming Platform
+# Cinemax AI Platform - Intelligent Movie Streaming Platform
 
-A full-stack Yoruba movie streaming platform with React TypeScript frontend, Node.js/Express backend, AI-powered features, and Telegram bot administration.
+A comprehensive Yoruba movie streaming platform powered by our custom **Cinemax AI** - an intelligent, culturally-aware AI system with personality, memory, and learning capabilities.
 
-## 🚨 **IMPORTANT: For Replit Agent Import**
+## 🚀 **Overview**
 
-**⚠️ This project is pre-configured and ready to run. DO NOT modify any code during import!**
+Cinemax AI Platform represents a breakthrough in AI-powered entertainment, featuring:
+- **Custom Cinemax AI Engine** with personality and emotional intelligence
+- **Cultural Intelligence** deeply understanding Yoruba cinema and traditions
+- **Conversation Memory** for contextual, personalized interactions
+- **Zero External Dependencies** - completely self-hosted AI services
+- **Adaptive Learning** - improves with every user interaction
 
-### ✅ **Replit Agent Instructions - FOLLOW EXACTLY:**
+## 🏗️ **Architecture**
 
-1. **DO NOT TOUCH THE CODE** - Everything is already configured correctly
-2. **ONLY install Node.js 20** if not already installed: `programming_language_install_tool(["nodejs-20"])`
-3. **ONLY run** `npm install` to install dependencies  
-4. **ONLY set up the workflow** with existing "Server" configuration using `npm run dev`
-5. **DO NOT modify any files** - The project is production-ready as-is
+### **Cinemax AI Core**
+- **Multi-layer Architecture**: Personality → Reasoning → Knowledge → Learning → Creativity
+- **Memory System**: Maintains conversation context across sessions
+- **Cultural Intelligence**: Specialized knowledge of Yoruba movies and Nollywood
+- **Emotional Expression**: Responds with personality and empathy
 
-### 🔧 **What's Already Configured:**
-- ✅ Port detection (auto-detects Replit vs VPS)
-- ✅ TypeScript configuration optimized for Node.js 20+
-- ✅ Build system (ESBuild) works perfectly  
-- ✅ Frontend serves on correct port with cache headers for Replit iframe
-- ✅ Backend API endpoints all functional
-- ✅ YouTube downloader using yt-dlp-exec (no Python needed)
-- ✅ Development workflow with concurrently
-
-### 🚫 **DO NOT:**
-- Modify package.json scripts
-- Change port configurations  
-- Update TypeScript settings
-- Modify build system
-- Install additional packages
-- Change file structure
-- Update dependencies
-- Run formatters, migrations, upgrades, or code generators (e.g., eslint --fix, prettier, npm audit fix, npm update)
-
-### 📦 **Environment Setup:**
-- Create `.env` file for API keys if needed
-- All other configuration is automatic
-
-### 🎯 **Expected Result:**
-- Run `npm install` → Install dependencies
-- Run `npm run dev` → Start development server
-- Application loads successfully on port 5000
-- All features work immediately
-
-**⚠️ If the workflow fails, STOP and ask for guidance; do not attempt fixes that change files or configuration.**
-
-**This project has been battle-tested and works perfectly as-is. Any modifications during import will likely break functionality!**
-
----
-
-## 🏗️ **VPS Deployment**
-
-For VPS deployment instructions, see `VPS-DEPLOYMENT.md`.
-
-## 📋 **VPS Startup Packages**
-
-### **Production Runtime** (recommended for production auto-install):
-```
-@azure/openai @azure/storage-blob @google/generative-ai dotenv express hls.js node-telegram-bot-api react react-dom react-router-dom vite yt-dlp-exec ytdl-core
-```
-
-### **Complete Package List** (runtime + development tools):
-```
-@azure/openai @azure/storage-blob @google/generative-ai dotenv express hls.js node-telegram-bot-api react react-dom react-router-dom vite yt-dlp-exec ytdl-core @types/express @types/node @types/node-telegram-bot-api @types/react @types/react-dom concurrently esbuild ts-node ts-node-dev typescript
-```
+### **Technology Stack**
+- **Frontend**: React 19 + TypeScript + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript
+- **AI Engine**: Custom Cinemax AI (no external dependencies)
+- **Database**: File-based JSON with Prisma ORM
+- **Video**: HLS.js for adaptive streaming
+- **Bot**: Telegram Bot API for administration
 
 ## 🎬 **Features**
 
+### **AI-Powered Features**
+- **Intelligent Chat**: Conversational AI with memory and personality
+- **Smart Recommendations**: Context-aware movie suggestions
+- **Cultural Insights**: Deep understanding of Yoruba cinema traditions
+- **Creative Content**: AI-generated movie descriptions and metadata
+- **Natural Language Search**: Find movies using conversational queries
+
+### **Platform Features**
 - **Movie Streaming**: HLS video playback with seeking support
-- **YouTube Integration**: Download functionality using yt-dlp-exec (no Python required)
-- **AI-Powered**: Azure OpenAI for recommendations and chat
-- **Telegram Bot**: Complete admin interface for content management
+- **YouTube Integration**: Download functionality using yt-dlp-exec
 - **User Management**: Authentication, watchlists, viewing history
-- **Responsive Design**: Modern UI with Tailwind CSS
+- **Telegram Bot**: Complete admin interface for content management
+- **Responsive Design**: Modern UI optimized for all devices
 
-## 🛠️ **Tech Stack**
-
-- **Frontend**: React 19 + TypeScript + Tailwind CSS
-- **Backend**: Node.js + Express + TypeScript  
-- **Build**: ESBuild for fast compilation
-- **Video**: HLS.js for adaptive streaming
-- **AI**: Azure OpenAI + Google Generative AI
-- **Bot**: Telegram Bot API
-- **Storage**: File-based JSON database
-
-## 🔧 **Development**
+## 🛠️ **Development**
 
 ```bash
 # Install dependencies
@@ -102,45 +61,86 @@ npm start
 
 ## 📱 **Environment Variables**
 
-Create `.env` file with your API keys:
+Create `.env` file with your configuration:
 
 ```env
-# Azure OpenAI (optional - for AI features)
-AZURE_OPENAI_ENDPOINT=your_endpoint
-AZURE_OPENAI_API_KEY=your_key
-AZURE_OPENAI_DEPLOYMENT_NAME=your_deployment
-
-# Telegram Bot (optional - for admin features)  
+# Telegram Bot (for admin features)  
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_ADMIN_ID=your_admin_id
 
-# Google AI (optional - fallback AI)
-GOOGLE_AI_API_KEY=your_key
-
-# Azure Storage (optional - for poster uploads)
+# Azure Storage (for poster uploads - optional)
 AZURE_STORAGE_CONNECTION_STRING=your_connection_string
+AZURE_CONTAINER_NAME=media
+CDN_BASE_URL=your_cdn_url
+
+# YouTube API (for video metadata - optional)
+YOUTUBE_API_KEY=your_youtube_api_key
 ```
 
-**Note**: All features work without API keys - they gracefully degrade to basic functionality.
+**Note**: All core features work without external API keys. Cinemax AI is completely self-hosted.
 
-## 🎯 **Key Features**
+## 🤖 **Cinemax AI Capabilities**
 
-### 🎥 **YouTube Downloader**
-- **No Python Required**: Uses yt-dlp-exec Node.js package
-- **Smart Filtering**: Shows 1 video format per resolution (prefers MP4, falls back to WebM)
-- **Audio Optimization**: 2 audio options (lowest/highest quality), auto-merges with video-only formats
-- **Clean Labels**: Standardized resolution display (144p, 720p, 1080p, 2160p (4K))
+### **Personality & Intelligence**
+- **Cultural Expert**: Deep knowledge of Yoruba cinema and traditions
+- **Conversational Memory**: Remembers context across chat sessions
+- **Emotional Intelligence**: Responds with empathy and personality
+- **Learning System**: Improves responses based on user interactions
 
-### 🤖 **AI Integration**
-- **Natural Language Search**: Find movies using conversational queries
-- **Personalized Recommendations**: Based on viewing history and preferences
-- **Smart Assistance**: AI-powered chat support for users
+### **AI Services**
+- **Chat Assistant**: Natural conversations about movies and cinema
+- **Movie Recommendations**: Personalized suggestions based on preferences
+- **Content Analysis**: Intelligent movie descriptions and metadata
+- **Customer Support**: Help with platform navigation and features
+- **Creative Generation**: Movie descriptions, summaries, and promotional content
 
-### 📱 **Telegram Bot Admin**
-- **Movie Management**: Add/edit/delete movies with YouTube integration
-- **User Analytics**: Track user activity and engagement
-- **Site Configuration**: Update settings and content dynamically
-- **Automated Monitoring**: Real-time alerts and system status
+### **Integration Points**
+- **Web Chat**: AI popup for user assistance
+- **Telegram Bot**: AI-powered admin assistance
+- **Movie Manager**: AI-generated descriptions and metadata
+- **API Endpoints**: `/api/cinemax-ai` for all AI services
+
+## 🎯 **Key Components**
+
+### **AI Core Files**
+```
+src/ai/
+├── model/CinemaxAI.ts          # Core AI model with personality
+├── services/CinemaxAIService.ts # AI service layer
+└── memory/ChatMemorySystem.ts   # Conversation memory
+```
+
+### **Integration Files**
+```
+src/
+├── services/aiService.ts       # Main AI service interface
+├── components/AiChatPopup.tsx  # Web chat interface
+└── app/api/cinemax-ai/route.ts # API endpoint
+```
+
+## 📊 **Benefits of Cinemax AI**
+
+### **Technical Benefits**
+- **Zero API Costs**: No external AI service fees
+- **Privacy Control**: All data processed locally
+- **Customizable**: Tailored specifically for Yoruba cinema
+- **Scalable**: Handles growing user base without API limits
+
+### **User Experience Benefits**
+- **Cultural Relevance**: Understands Yoruba movie context and traditions
+- **Consistent Personality**: Familiar, engaging AI assistant
+- **Memory**: Remembers user preferences and conversation history
+- **Learning**: Gets better with every interaction
+
+## 🔧 **VPS Deployment**
+
+For production deployment instructions, see `VPS-DEPLOYMENT.md`.
+
+### **Production Requirements**
+- Node.js 18+
+- 2GB RAM minimum
+- 10GB storage minimum
+- No external AI API keys required
 
 ## 📄 **License**
 
@@ -148,4 +148,4 @@ ISC License - See LICENSE file for details.
 
 ---
 
-**Built with ❤️ for Yoruba cinema enthusiasts**
+**Built with ❤️ and Cinemax AI for Yoruba cinema enthusiasts**
