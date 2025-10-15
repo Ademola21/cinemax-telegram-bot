@@ -1,0 +1,18 @@
+{
+  "currentStreamId": "hls_1759736089894",
+  "isLive": true,
+  "queue": [],
+  "sources": [
+    {
+      "id": "hls_1759736089894",
+      "type": "hls",
+      "title": "Cartoon Network 😺",
+      "description": "Nice movie",
+      "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+      "addedBy": "admin",
+      "addedAt": "2025-10-06T07:34:49.894Z",
+      "status": "active"
+    }
+  ],
+  "defaultSourceId": null
+}

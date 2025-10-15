@@ -1,0 +1,12 @@
+{
+  "autonomousFinder": {
+    "enabled": false,
+    "checkIntervalMinutes": 1,
+    "channelUrls": [
+      "https://youtube.com/@apankufortv1071",
+      "https://youtube.com/@mobimpetv",
+      "https://youtube.com/@thedamilolaoni",
+      "https://youtube.com/@yorubapremiumtv"
+    ]
+  }
+}
